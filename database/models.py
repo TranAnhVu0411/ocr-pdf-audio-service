@@ -39,14 +39,14 @@ class Pages(db.Document):
     audioStatus = db.EnumField(Status, default=Status.NEW)
     createdAt = db.DateTimeField(required=True)
     updatedAt = db.DateTimeField(required=True)
-    meta = {
-        'indexes': [
-            {
-                'fields': ['chapter', 'index'],
-                'unique': True  
-            }
-        ]
-    }
+    # meta = {
+    #     'indexes': [
+    #         {
+    #             'fields': ['chapter', 'index'],
+    #             'unique': True  
+    #         }
+    #     ]
+    # }
     def get_page_image_path(self):
         return f"book_{self.chapter.book.id}/chapter_{self.chapter.id}/page_{self.id}/page_{self.id}.png"
     def get_page_pdf_path(self):
@@ -66,14 +66,14 @@ class Chapters(db.Document):
     pages = db.ListField(db.ReferenceField('Pages', reverse_delete_rule=db.PULL), default=[])    
     createdAt = db.DateTimeField(required=True)
     updatedAt = db.DateTimeField(required=True)
-    meta = {
-        'indexes': [
-            {
-                'fields': ['book', 'index'],
-                'unique': True  
-            }
-        ]
-    }
+    # meta = {
+    #     'indexes': [
+    #         {
+    #             'fields': ['book', 'index'],
+    #             'unique': True  
+    #         }
+    #     ]
+    # }
     def get_chapter_folder_path(self):
         return f"book_{self.book.id}/chapter_{self.id}"
     def save(self, *args, **kwargs):
@@ -112,3 +112,4 @@ class Books(db.Document):
         return f"book_{self.id}/book_{self.id}.pdf"
 
 Chapters.register_delete_rule(Pages, 'chapter', db.CASCADE)
+Pages.register_delete_rule(Sentences, 'page', db.CASCADE)
