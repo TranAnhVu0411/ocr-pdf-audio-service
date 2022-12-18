@@ -1,6 +1,6 @@
 from flask import Response, request
 from flask_restful import Resource
-from database.models import Chapters, Pages
+from database.models import Chapters, Pages, Sentences
 from cloud.minio_utils import *
 from mongoengine.errors import (DoesNotExist, FieldDoesNotExist,
                                 InvalidQueryError, NotUniqueError,
@@ -33,9 +33,18 @@ class PagesApi(Resource):
 class PageApi(Resource):
     def put(self, page_id):
         try:
+            body = request.form.to_dict()
             body = request.get_json()
-            Pages.objects.get(id=page_id).update(**body)
-            return 'successful', 200
+            page = Pages.objects.get(id=page_id)
+            # Thêm sentence vào list sentence
+            if 'sentenceId' in body:
+                sentence = Sentences.objects.get(id=body['sentenceId'])
+                page.update(push__sentences = sentence)
+                return 'add sentence successful', 200
+            # Cập nhật các thông tin khác trong trang
+            else:
+                page.update(**body)
+                return 'update successful', 200
         except InvalidQueryError:
             raise SchemaValidationError
         except DoesNotExist:
