@@ -109,9 +109,12 @@ def bounding_box_preprocess(doc_message, page_id):
             for (startPoint, endPoint) in zip(startPoints, endPoints):
                 boundingBoxList.append(convert_bb_type(startPoint, endPoint))
             create_response = requests.post(f"{APP_HOST}/api/sentences", data={"index": sentenceIdx, "text": text, "boundingBox": json.dumps(boundingBoxList), "pageId": page_id})
+            sentence_id = create_response.json()
+            update_list_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json=sentence_id)
+
         # Update trạng thái trang
-        update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.READY})
-        return update_response.status_code
+        update_status_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.READY, "audioStatus": Status.PROCESSING})
+        return update_status_response.status_code
     except Exception as e:
         requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.ERROR})
 

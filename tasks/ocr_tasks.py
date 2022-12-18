@@ -27,7 +27,13 @@ def create_ocr_page(page_id, page_img_object_key, page_pdf_object_key):
                                 length= raw_pdf_size,
                                 content_type = 'application/pdf')
         
-        update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"ocrStatus": Status.READY})
+        update_response = requests.put(
+            f"{APP_HOST}/api/pages/{page_id}", 
+            json = {
+                "ocrStatus": Status.READY, 
+                "pdfStatus": Status.PROCESSING, 
+                "imageStatus": Status.PROCESSING
+            })
         return update_response.status_code
     except Exception as e:
         requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"ocrStatus": Status.ERROR})

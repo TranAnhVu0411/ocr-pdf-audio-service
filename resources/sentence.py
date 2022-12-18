@@ -52,7 +52,7 @@ class SentenceApi(Resource):
     def put(self, id):
         # id == sentence_id
         try:
-            body = request.form.to_dict()
+            body = request.get_json()
             sentence = Sentences.objects.get(id=id)
             sentence.update(**body)
             return 'successful', 200
