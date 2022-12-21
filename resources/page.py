@@ -1,4 +1,4 @@
-from flask import Response, request
+from flask import Response, request, make_response, jsonify
 from flask_restful import Resource
 from database.models import Chapters, Pages, Sentences
 from cloud.minio_utils import *
@@ -45,6 +45,17 @@ class PageApi(Resource):
             else:
                 page.update(**body)
                 return 'update successful', 200
+        except InvalidQueryError:
+            raise SchemaValidationError
+        except DoesNotExist:
+            raise UpdatingPageError
+        except Exception:
+            raise InternalServerError
+    def get(self, page_id):
+        try:
+            page = Pages.objects.get(id=page_id)
+            sentences = Sentences.objects(page=page_id)
+            return make_response(jsonify({'page': page, 'sentences': sentences}), 200)
         except InvalidQueryError:
             raise SchemaValidationError
         except DoesNotExist:

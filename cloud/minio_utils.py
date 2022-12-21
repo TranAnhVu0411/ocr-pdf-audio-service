@@ -3,6 +3,7 @@ from datetime import *
 from dotenv import dotenv_values
 from minio import Minio
 from minio.datatypes import PostPolicy
+from minio.error import S3Error
 
 config = dotenv_values("cloud/.env.cloud")
 
@@ -25,44 +26,24 @@ def create_if_not_found(bucket_name):
     except Exception as e:
         return False
 
-def get_presigned_url(object_key, expires_hours = 2 ):
+def get_presigned_url(object_key, type, response_type, expires_hours = 2 ):
     try:
         url = minio_client.get_presigned_url(
-            "PUT",
+            type,
             config['BASE_BUCKET'],
             object_key,
             expires=timedelta(hours=expires_hours),
-            response_headers={"Content-Type": 'application/json'},
+            response_headers={"Content-Type": response_type},
         )
         return url
     except Exception as e:
         print(e.message)
         return None
 
-def get_image_get_presigned_url(object_key, expires_hours = 2 ):
+def check_object_exist(object_key):
     try:
-        url = minio_client.get_presigned_url(
-            "GET",
-            config['BASE_BUCKET'],
-            object_key,
-            expires=timedelta(hours=expires_hours),
-            response_headers={"response-content-type": "image/png"},
-        )
-        return url
+        minio_client.stat_object(config['BASE_BUCKET'], object_key)
+        return True
     except Exception as e:
-        print(e.message)
-        return None
-
-def get_pdf_get_presigned_url(object_key, expires_hours = 2 ):
-    try:
-        url = minio_client.get_presigned_url(
-            "GET",
-            config['BASE_BUCKET'],
-            object_key,
-            expires=timedelta(hours=expires_hours),
-            response_headers={"response-content-type": "application/pdf"},
-        )
-        return url
-    except Exception as e:
-        print(e.message)
-        return None
+        print(e)
+        return False

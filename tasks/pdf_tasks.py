@@ -38,9 +38,10 @@ def find_bounding_box(listStartPoints, listEndPoints):
 def get_text(wordList):
     text = ""
     for (idx, word) in enumerate(wordList):
-        text+=word[4]+" "
         if idx == len(wordList)-1:
             text+=word[4]
+        else:
+            text+=word[4]+" "
     return text
 
 # Hợp nhất bounding box của các từ trong câu thành các bounding box của các dòng
@@ -100,6 +101,8 @@ def bounding_box_preprocess(doc_message, page_id):
         
         page = doc[0]
         sentences = read_page(page)
+        print("sentence length", len(sentences))
+        print("sentence", sentences)
         page = Pages.objects.get(id=page_id)
         for (sentenceIdx, wordList) in enumerate(sentences):
             # Tạo sentence object và lưu vào csdl
