@@ -33,15 +33,8 @@ class PageApi(Resource):
         try:
             body = request.form.to_dict()
             page = Pages.objects.get(id=page_id)
-            # Thêm sentence vào list sentence
-            if 'sentenceId' in body:
-                sentence = Sentences.objects.get(id=body['sentenceId'])
-                page.update(push__sentences = sentence)
-                return 'add sentence successful', 200
-            # Cập nhật các thông tin khác trong trang
-            else:
-                page.update(**body)
-                return 'update successful', 200
+            page.update(**body)
+            return 'update successful', 200
         except InvalidQueryError:
             raise SchemaValidationError
         except DoesNotExist:

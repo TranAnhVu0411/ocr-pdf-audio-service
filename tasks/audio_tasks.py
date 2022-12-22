@@ -42,7 +42,7 @@ def text_to_speech(page_id, page_audio_object_key):
             audio_segment = convert_text_to_pydub_audio_segment(text)
             audio_segment_list.append(audio_segment)
             audio_length = audio_segment.duration_seconds
-            get_response = requests.put(f"{APP_HOST}/api/sentences/{id}", json={"audioLength": audio_length})
+            get_response = requests.put(f"{APP_HOST}/api/sentences/{id}", data = {"audioLength": audio_length})
 
         main_audio = merge_audio_segments(audio_segment_list)
         raw_audio = BytesIO()
@@ -53,8 +53,9 @@ def text_to_speech(page_id, page_audio_object_key):
                                 data = raw_audio, 
                                 length= raw_audio_size,
                                 content_type = 'audio/mpeg')
-        update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"audioStatus": Status.READY})
+        update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"audioStatus": Status.READY})
         return update_response.status_code
     except Exception as e:
-        requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"audioStatus": Status.ERROR})
+        print('audio task', e)
+        requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"audioStatus": Status.ERROR})
 

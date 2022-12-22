@@ -107,25 +107,25 @@ def bounding_box_preprocess(doc_message, page_id):
         doc = convert_base64_to_pdf(doc_message)
         page = doc[0]
         sentences = read_page(page)
-        print("sentence length", len(sentences))
-        print("sentence", sentences)
-        page = Pages.objects.get(id=page_id)
-        for (sentenceIdx, wordList) in enumerate(sentences):
+        idx = 1 # Biến đếm index chương
+        for wordList in enumerate(sentences):
+            if (len(wordList)==0):# Tồn tại những word list rỗng (Không rõ lý do)
+                continue
             # Tạo sentence object và lưu vào csdl
             text = get_text(wordList)
             boundingBoxList = []
             startPoints, endPoints = merge_bounding_box(wordList)        
             for (startPoint, endPoint) in zip(startPoints, endPoints):
                 boundingBoxList.append(convert_bb_type(startPoint, endPoint))
-            create_response = requests.post(f"{APP_HOST}/api/sentences", data={"index": sentenceIdx, "text": text, "boundingBox": json.dumps(boundingBoxList), "pageId": page_id})
-            sentence_id = create_response.json()
-            update_list_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json=sentence_id)
+            create_response = requests.post(f"{APP_HOST}/api/sentences", data={"index": idx, "text": text, "boundingBox": json.dumps(boundingBoxList), "pageId": page_id})
+            idx+=1
 
         # Update trạng thái trang
-        update_status_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.READY, "audioStatus": Status.PROCESSING})
+        update_status_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"pdfStatus": Status.READY, "audioStatus": Status.PROCESSING})
         return update_status_response.status_code
     except Exception as e:
-        requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.ERROR})
+        print('bb preprocess task', e)
+        requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"pdfStatus": Status.ERROR})
 
 # Chuyển pdf thành ảnh
 @celery_pdf_process.task()
@@ -142,10 +142,10 @@ def convert_pdf_to_image(doc_message, page_id, image_status, page_img_object_key
                                     data = raw_img, 
                                     length= raw_img_size,
                                     content_type = 'image/png')
-            update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.READY})
+            update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"imageStatus": Status.READY})
             return update_response.status_code
         except Exception as e:
-            requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.ERROR})
+            requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"imageStatus": Status.ERROR})
     elif image_status == Status.PROCESSING:
         return 'image is already completed'
 
@@ -187,5 +187,5 @@ def split_book_page(doc_message, from_page, to_page, chapter_id):
             
             page_preprocess_response = requests.post(f"{APP_HOST}/api/preprocess/page", data={'pageId': page_id})
     except Exception as e:
-        print(e)
+        print('split book', e)
         return "error"

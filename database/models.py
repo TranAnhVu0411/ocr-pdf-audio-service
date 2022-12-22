@@ -32,7 +32,6 @@ class Sentences(db.Document):
 class Pages(db.Document):
     chapter = db.ReferenceField("Chapters", required=True)
     index = db.IntField(required=True)
-    sentences = db.ListField(db.ReferenceField('Sentences', reverse_delete_rule=db.PULL), default=[])
     pdfStatus = db.EnumField(Status, default=Status.NEW)
     imageStatus = db.EnumField(Status, default=Status.NEW)
     ocrStatus = db.EnumField(Status, default=Status.NEW)
@@ -64,8 +63,7 @@ class Pages(db.Document):
 class Chapters(db.Document):
     book = db.ReferenceField("Books", required=True)
     name = db.StringField(required=True)
-    index = db.IntField(required=True)
-    pages = db.ListField(db.ReferenceField('Pages', reverse_delete_rule=db.PULL), default=[])    
+    index = db.IntField(required=True)  
     createdAt = db.DateTimeField(required=True)
     updatedAt = db.DateTimeField(required=True)
     # meta = {

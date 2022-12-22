@@ -40,7 +40,7 @@ class PresignedUrlApi(Resource):
                     url = get_presigned_url(path, type='GET', response_type='application/pdf')
                     return {'url': url}, 200
                 if body['data-type']=='audio':
-                    path = page.get_page_mp3_path()
+                    path = page.get_page_audio_path()
                     url = get_presigned_url(path, type='GET', response_type='audio/mpeg')
                     return {'url': url}, 200
             elif body['type']=='book':
@@ -66,11 +66,11 @@ class PresignedUrlApi(Resource):
                 else:
                     response["pdf_url"] = "not exist"
 
-                mp3_path = page.get_page_mp3_path()
+                mp3_path = page.get_page_audio_path()
                 if check_object_exist(mp3_path):
-                    response['mp3_url'] = get_presigned_url(mp3_path, type='DELETE', response_type='application/json')
+                    response['audio_url'] = get_presigned_url(mp3_path, type='DELETE', response_type='application/json')
                 else:
-                    response["mp3_url"] = "not exist"
+                    response["audio_url"] = "not exist"
                 folder_path = page.get_page_folder_path()
                 response["folder_url"] = get_presigned_url(folder_path, type='DELETE', response_type='application/json')
                 return response, 200

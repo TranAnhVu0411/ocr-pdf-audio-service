@@ -54,16 +54,8 @@ class ChapterApi(Resource):
                 try:
                     body = request.form.to_dict()
                     chapter = Chapters.objects.get(id=chapter_id)
-                    # Thêm trang vào list trang
-                    if 'pageId' in body:
-                        page = Pages.objects.get(id=body['pageId'])
-                        chapter.update(push__pages = page)
-                        return 'add page successful', 200
-                    # Cập nhật thông tin khác trong chapter
-                    else:
-                        print(body)
-                        chapter.update(**body)
-                        return 'update successful', 200
+                    chapter.update(**body)
+                    return 'update successful', 200
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()
                     raise SchemaValidationError
