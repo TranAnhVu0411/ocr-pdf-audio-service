@@ -1,9 +1,9 @@
 from .book import BooksApi
-from .url import PresignedUrlApi
+from .url import PresignedUrlApi, ObjectKeyAPI
 from .chapter import ChaptersApi, ChapterApi
 from .page import PagesApi, PageApi
 from .sentence import SentencesApi, SentenceApi
-from .tasks import PageImgProcessApi
+from .tasks import PageImgProcessApi, BookPdfProcessApi
 
 # from .reset_password import ForgotPassword, ResetPassword
 
@@ -18,3 +18,5 @@ def initialize_routes(api):
     api.add_resource(SentencesApi, '/api/sentences')
     api.add_resource(SentenceApi, '/api/sentences/<id>')
     api.add_resource(PageImgProcessApi, '/api/preprocess/page')
+    api.add_resource(BookPdfProcessApi, '/api/preprocess/book')
+    api.add_resource(ObjectKeyAPI, '/api/object_keys')

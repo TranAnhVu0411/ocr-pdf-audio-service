@@ -16,9 +16,7 @@ class PagesApi(Resource):
             body = request.form.to_dict()
             chapter_id = body.pop('chapterId')
             chapter = Chapters.objects.get(id=chapter_id)
-            page = Pages(**{
-                "index": int(body["index"]),
-            }, chapter=chapter)   
+            page = Pages(**body, chapter=chapter)   
             page.save()
             id = page.id
             return {'pageId': str(id)}, 200
@@ -34,7 +32,6 @@ class PageApi(Resource):
     def put(self, page_id):
         try:
             body = request.form.to_dict()
-            body = request.get_json()
             page = Pages.objects.get(id=page_id)
             # Thêm sentence vào list sentence
             if 'sentenceId' in body:
@@ -54,11 +51,21 @@ class PageApi(Resource):
     def get(self, page_id):
         try:
             page = Pages.objects.get(id=page_id)
-            sentences = Sentences.objects(page=page_id)
+            sentences = Sentences.objects(page=page_id).order_by('index')
             return make_response(jsonify({'page': page, 'sentences': sentences}), 200)
         except InvalidQueryError:
             raise SchemaValidationError
         except DoesNotExist:
             raise UpdatingPageError
+        except Exception:
+            raise InternalServerError
+    def delete(self, page_id):
+        try:
+            # user_id = get_jwt_identity()
+            page = Pages.objects.get(id=page_id)
+            page.delete()
+            return 'delete successful', 200
+        except DoesNotExist:
+            raise DeletingPageError
         except Exception:
             raise InternalServerError

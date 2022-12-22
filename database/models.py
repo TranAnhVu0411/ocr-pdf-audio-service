@@ -47,11 +47,13 @@ class Pages(db.Document):
     #         }
     #     ]
     # }
+    def get_page_folder_path(self):
+        return f"book_{self.chapter.book.id}/chapter_{self.chapter.id}/page_{self.id}"
     def get_page_image_path(self):
         return f"book_{self.chapter.book.id}/chapter_{self.chapter.id}/page_{self.id}/page_{self.id}.png"
     def get_page_pdf_path(self):
         return f"book_{self.chapter.book.id}/chapter_{self.chapter.id}/page_{self.id}/page_{self.id}.pdf"
-    def get_page_mp3_path(self):
+    def get_page_audio_path(self):
         return f"book_{self.chapter.book.id}/chapter_{self.chapter.id}/page_{self.id}/page_{self.id}.mp3"
     def save(self, *args, **kwargs):
         if not self.createdAt:

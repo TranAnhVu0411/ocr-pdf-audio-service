@@ -22,14 +22,19 @@ class ChaptersApi(Resource):
                 try:
                     body = request.form.to_dict()
                     book_id = body.pop('bookId')
-                    book = Books.objects.get(id=book_id)    
+                    book = Books.objects.get(id=book_id)
                     chapter = Chapters(**{
                         "index": int(body["index"]),
                         "name": body["name"],
                     }, book=book)
                     chapter.save(session=session)
                     id = chapter.id
-                    return {'chapterId': str(id)}, 200
+                    # Nếu trong request có from, to là trang bắt đầu và trang kết thúc trong pdf
+                    if 'from' in body:
+                        return {'chapterId': str(id), 'from': body['from'], 'to': body['to']}, 200
+                    # Nếu không có, chỉ truyền chapterId
+                    else:
+                        return {'chapterId': str(id)}, 200
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()
                     raise SchemaValidationError
@@ -74,7 +79,7 @@ class ChapterApi(Resource):
             with session.start_transaction():
                 try:
                     chapter = Chapters.objects.get(id=chapter_id)
-                    pages = Pages.objects(chapter=chapter_id)
+                    pages = Pages.objects(chapter=chapter_id).order_by('index')
                     return make_response(jsonify({'chapter': chapter, 'pages': pages}), 200)
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()

@@ -83,22 +83,28 @@ def merge_bounding_box(wordList):
 def convert_bb_type(startPoint, endPoint):
     return {'x': startPoint[0], 'y': startPoint[1], 'width': endPoint[0]-startPoint[0], 'height': endPoint[1]-startPoint[1]}
 
-# Đọc PDF
+# Từ base64 chuyển thành file pdf
+def convert_base64_to_pdf(doc_message):
+    base64_doc_bytes = doc_message.encode('ascii')
+    doc_bytes = base64.b64decode(base64_doc_bytes)
+    doc = fitz.open(stream=doc_bytes, filetype="pdf")
+    return doc
+
+
+# Đọc PDF (Lấy pdf và chuyển dưới dạng base64 string)
 @celery_pdf_process.task()
-def get_pdf(pdf_object_key): # id: mã sách/trang , type: book/page
+def get_pdf(pdf_object_key):
     response = minio_client.get_object(config["BASE_BUCKET"], pdf_object_key)
     doc = fitz.open("pdf", response.data)
     doc_bytes = doc.tobytes()
     base64_doc_bytes = base64.b64encode(doc_bytes)
     return base64_doc_bytes.decode('ascii')
 
+# Tạo câu và bounding box cho trang
 @celery_pdf_process.task()
 def bounding_box_preprocess(doc_message, page_id):
     try:
-        base64_doc_bytes = doc_message.encode('ascii')
-        doc_bytes = base64.b64decode(base64_doc_bytes)
-        doc = fitz.open(stream=doc_bytes, filetype="pdf")
-        
+        doc = convert_base64_to_pdf(doc_message)
         page = doc[0]
         sentences = read_page(page)
         print("sentence length", len(sentences))
@@ -121,58 +127,65 @@ def bounding_box_preprocess(doc_message, page_id):
     except Exception as e:
         requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"pdfStatus": Status.ERROR})
 
+# Chuyển pdf thành ảnh
 @celery_pdf_process.task()
-def convert_pdf_to_image(doc_message, page_id, page_img_object_key):
-    try:
-        base64_doc_bytes = doc_message.encode('ascii')
-        doc_bytes = base64.b64decode(base64_doc_bytes)
-        doc = fitz.open(stream=doc_bytes, filetype="pdf")
+def convert_pdf_to_image(doc_message, page_id, image_status, page_img_object_key):
+    if image_status == Status.NEW:
+        try:
+            doc = convert_base64_to_pdf(doc_message)
+            pix = doc[0].get_pixmap()
+            data = pix.pil_tobytes(format="png", optimize=True)
+            raw_img = io.BytesIO(data)
+            raw_img_size = raw_img.getbuffer().nbytes
+            minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
+                                    object_name = page_img_object_key, 
+                                    data = raw_img, 
+                                    length= raw_img_size,
+                                    content_type = 'image/png')
+            update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.READY})
+            return update_response.status_code
+        except Exception as e:
+            requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.ERROR})
+    elif image_status == Status.PROCESSING:
+        return 'image is already completed'
 
-        pix = doc[0].get_pixmap()
-        data = pix.pil_tobytes(format="png", optimize=True)
-        raw_img = io.BytesIO(data)
-        raw_img_size = raw_img.getbuffer().nbytes
-        minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
-                                object_name = page_img_object_key, 
-                                data = raw_img, 
-                                length= raw_img_size,
-                                content_type = 'image/png')
-        update_response = requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.READY})
-        return update_response.status_code
-    except Exception as e:
-        requests.put(f"{APP_HOST}/api/pages/{page_id}", json = {"imageStatus": Status.ERROR})
-
+# Chia sách ra thành các trang
 @celery_pdf_process.task()
 def split_book_page(doc_message, from_page, to_page, chapter_id):
-    base64_doc_bytes = doc_message.encode('ascii')
-    doc_bytes = base64.b64decode(base64_doc_bytes)
-    doc = fitz.open(stream=doc_bytes, filetype="pdf")
+    try:
+        doc = convert_base64_to_pdf(doc_message)
+        for (idx, i) in enumerate(range(from_page-1, to_page)):
+            # Tạo Page và lưu vào db
+            page_write_response = requests.post(f"{APP_HOST}/api/pages", data={'index': idx+1, 'chapterId': chapter_id, 'ocrStatus': Status.READY, 'imageStatus': Status.READY})
+            page_id = page_write_response.json()['pageId']
+            # Lấy object key của image và pdf
+            object_key_response = requests.post(f"{APP_HOST}/api/object_keys", data={'type': 'page', 'id': page_id})
+            object_key = object_key_response.json()
 
-    chapter = Chapters.objects.get(id=chapter_id)
-    chapter_path = chapter.get_chapter_folder_path()
-    for (idx, i) in enumerate(range(from_page-1, to_page)):
-        # Tạo Page và lưu vào db
-        page = Pages(**{
-            "index": idx+1,
-            "status": 'processing_highlight'
-        }, chapter=chapter)   
-        page.save()
-        # Upload ảnh lên Cloud
-        pix = doc[i].get_pixmap()
-        img_data = pix.pil_tobytes(format="png", optimize=True)
-        raw_img = io.BytesIO(img_data)
-        raw_img_size = raw_img.getbuffer().nbytes
-        minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
-                                object_name = page.get_page_image_path(chapter_path), 
-                                data = raw_img, 
-                                length= raw_img_size,
-                                content_type = 'image/png')
-        # Upload PDF lên Cloud
-        pdf_data = doc[i].tobytes()
-        raw_pdf = io.BytesIO(pdf_data)
-        raw_pdf_size = raw_pdf.getbuffer().nbytes
-        minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
-                                object_name = page.get_page_pdf_path(chapter_path), 
-                                data = raw_pdf, 
-                                length= raw_pdf_size,
-                                content_type = 'application/pdf')
+            # Upload ảnh lên Cloud
+            pix = doc[i].get_pixmap()
+            img_data = pix.pil_tobytes(format="png", optimize=True)
+            raw_img = io.BytesIO(img_data)
+            raw_img_size = raw_img.getbuffer().nbytes
+            minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
+                                    object_name = object_key['image-path'], 
+                                    data = raw_img, 
+                                    length= raw_img_size,
+                                    content_type = 'image/png')
+
+            # Upload PDF lên Cloud
+            page_doc = fitz.open() # an empty pdf file is opened
+            page_doc.insert_pdf(doc, from_page=i, to_page=i)
+            pdf_data = page_doc.tobytes()
+            raw_pdf = io.BytesIO(pdf_data)
+            raw_pdf_size = raw_pdf.getbuffer().nbytes
+            minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
+                                    object_name = object_key['pdf-path'], 
+                                    data = raw_pdf, 
+                                    length= raw_pdf_size,
+                                    content_type = 'application/pdf')
+            
+            page_preprocess_response = requests.post(f"{APP_HOST}/api/preprocess/page", data={'pageId': page_id})
+    except Exception as e:
+        print(e)
+        return "error"
