@@ -45,6 +45,19 @@ class ChaptersApi(Resource):
                 except Exception as e:
                     session.abort_transaction()
                     raise InternalServerError
+    # Lấy trạng thái của tất cả các chapters
+    # def get(self):
+    #     try:
+    #         chapters = Chapters.objects()
+            
+    #         return {'chapterId': str(id)}, 200
+    #     except (FieldDoesNotExist, ValidationError):
+    #         raise SchemaValidationError
+    #     except NotUniqueError:
+    #         raise ChapterAlreadyExistsError
+    #     except Exception as e:
+    #         raise InternalServerError
+
 
 # route api/chapters/<chapter_id>
 class ChapterApi(Resource):
