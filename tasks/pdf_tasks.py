@@ -32,17 +32,7 @@ def find_bounding_box(listStartPoints, listEndPoints):
     y0 = min([i[1] for i in listStartPoints])
     x1 = listEndPoints[-1][0]
     y1 = max([i[1] for i in listEndPoints])
-    return (round(x0), round(y0)), (round(x1), round(y1))
-
-# Lấy các câu
-def get_text(wordList):
-    text = ""
-    for (idx, word) in enumerate(wordList):
-        if idx == len(wordList)-1:
-            text+=word[4]
-        else:
-            text+=word[4]+" "
-    return text
+    return (x0, y0), (x1, y1)
 
 # Hợp nhất bounding box của các từ trong câu thành các bounding box của các dòng
 def merge_bounding_box(wordList):
@@ -83,6 +73,16 @@ def merge_bounding_box(wordList):
 def convert_bb_type(startPoint, endPoint):
     return {'x': startPoint[0], 'y': startPoint[1], 'width': endPoint[0]-startPoint[0], 'height': endPoint[1]-startPoint[1]}
 
+# Lấy các câu
+def get_text(wordList):
+    text = ""
+    for (idx, word) in enumerate(wordList):
+        if idx == len(wordList)-1:
+            text+=word[4]
+        else:
+            text+=word[4]+" "
+    return text
+
 # Từ base64 chuyển thành file pdf
 def convert_base64_to_pdf(doc_message):
     base64_doc_bytes = doc_message.encode('ascii')
@@ -107,8 +107,8 @@ def bounding_box_preprocess(doc_message, page_id):
         doc = convert_base64_to_pdf(doc_message)
         page = doc[0]
         sentences = read_page(page)
-        idx = 1 # Biến đếm index chương
-        for wordList in enumerate(sentences):
+        idx = 1 # Biến đếm index câu
+        for wordList in sentences:
             if (len(wordList)==0):# Tồn tại những word list rỗng (Không rõ lý do)
                 continue
             # Tạo sentence object và lưu vào csdl

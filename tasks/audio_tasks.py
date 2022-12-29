@@ -59,3 +59,14 @@ def text_to_speech(page_id, page_audio_object_key):
         print('audio task', e)
         requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"audioStatus": Status.ERROR})
 
+
+def concat_audio(audio_object_key_list):
+    audio_segment_list = []
+    for object_key in audio_object_key_list:
+        response = minio_client.get_object(config["BASE_BUCKET"], object_key)
+        audio_segment_list.append(AudioSegment.from_file(BytesIO(response.data), format="mp3"))
+    audio = merge_audio_segments(audio_segment_list)
+    raw_audio = BytesIO()
+    audio.export(raw_audio, format="mp3")
+    return raw_audio
+

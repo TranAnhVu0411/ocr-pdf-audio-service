@@ -26,7 +26,7 @@ def create_if_not_found(bucket_name):
     except Exception as e:
         return False
 
-def get_presigned_url(object_key, type, response_type, expires_hours = 2 ):
+def get_presigned_url(object_key, type, response_type, expires_hours = 24 ):
     try:
         url = minio_client.get_presigned_url(
             type,

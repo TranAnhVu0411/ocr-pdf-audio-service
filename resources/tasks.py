@@ -1,4 +1,4 @@
-from flask import Response, request
+from flask import Response, request, send_file
 from flask_restful import Resource
 from database.models import Chapters, Pages, Books
 from celery import group, chain
@@ -6,6 +6,7 @@ from tasks.ocr_tasks import *
 from tasks.pdf_tasks import *
 from tasks.audio_tasks import *
 from database.models import *
+import json
 
 # Xử lý OCR, Audio cho Page Image
 class PageImgProcessApi(Resource):
@@ -58,3 +59,31 @@ class BookPdfProcessApi(Resource):
         ).apply_async()
 
         return {'work_flow_id': work_flow.id}, 200
+
+class AudioProcessApi(Resource):
+    # Xử lý khi chỉnh sửa text trong pages
+    def put(self):
+        body = request.form.to_dict()
+        page_id = body.pop('pageId')
+        page = Pages.objects.get(id=page_id)
+        work_flow = text_to_speech.apply_async(kwargs={
+                'page_id': page_id, 
+                'page_audio_object_key': page.get_page_audio_path()
+            }
+        )
+        return {'work_flow_id': work_flow.id}, 200
+
+    # Lấy audio concat của 1 chapters
+    def get(self):
+        chapter_id = request.args.get('chapter_id')
+        chapter = Chapters.objects.get(id=chapter_id)
+        pages = Pages.objects(chapter=chapter_id).order_by('index')
+        key_list = [page.get_page_audio_path() for page in pages]
+        raw_audio=concat_audio(key_list)
+        base64_audio = base64.b64encode(raw_audio.read()).decode('UTF-8')
+        # return send_file(raw_audio, mimetype='audio/mpeg')
+        return {'base64_audio': base64_audio}, 200
+
+
+        
+        

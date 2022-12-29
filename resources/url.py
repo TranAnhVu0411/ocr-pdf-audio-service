@@ -75,12 +75,12 @@ class PresignedUrlApi(Resource):
                 response["folder_url"] = get_presigned_url(folder_path, type='DELETE', response_type='application/json')
                 return response, 200
 
-# Presigned Url API
+# Get Object Key API
 # Request = {
 #     type: book/page,
 #     id: ...,
 # }
-class ObjectKeyAPI(Resource):
+class ObjectKeyApi(Resource):
     def post(self):
         body = request.form.to_dict()
         if body['type']=='book':

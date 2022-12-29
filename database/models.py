@@ -10,10 +10,10 @@ class Status(str, Enum):
     ERROR = "error"
 
 class BoundingBoxes(db.EmbeddedDocument):
-    x = db.IntField(required=True)
-    y = db.IntField(required=True)
-    width = db.IntField(required=True)
-    height = db.IntField(required=True)
+    x = db.FloatField(required=True)
+    y = db.FloatField(required=True)
+    width = db.FloatField(required=True)
+    height = db.FloatField(required=True)
 
 class Sentences(db.Document):
     page = db.ReferenceField('Pages', required=True)
@@ -64,6 +64,7 @@ class Chapters(db.Document):
     book = db.ReferenceField("Books", required=True)
     name = db.StringField(required=True)
     index = db.IntField(required=True)  
+    # pdfStatus = db.EnumField(Status, default=Status.NEW)
     createdAt = db.DateTimeField(required=True)
     updatedAt = db.DateTimeField(required=True)
     # meta = {

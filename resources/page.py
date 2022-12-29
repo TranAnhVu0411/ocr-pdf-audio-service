@@ -11,6 +11,7 @@ from resources.errors.page_errors import (DeletingPageError, InternalServerError
 
 # route api/pages
 class PagesApi(Resource):
+    # Tạo page mới
     def post(self):
         try:
             body = request.form.to_dict()
@@ -29,6 +30,7 @@ class PagesApi(Resource):
 
 # route api/pages/<page_id>
 class PageApi(Resource):
+    # Cập nhật thông tin page
     def put(self, page_id):
         try:
             body = request.form.to_dict()
@@ -41,6 +43,7 @@ class PageApi(Resource):
             raise UpdatingPageError
         except Exception:
             raise InternalServerError
+    # Lấy thông tin page + sentences
     def get(self, page_id):
         try:
             page = Pages.objects.get(id=page_id)
@@ -52,6 +55,7 @@ class PageApi(Resource):
             raise UpdatingPageError
         except Exception:
             raise InternalServerError
+    # Xoá page
     def delete(self, page_id):
         try:
             # user_id = get_jwt_identity()
