@@ -67,6 +67,7 @@ class Chapters(db.Document):
     # pdfStatus = db.EnumField(Status, default=Status.NEW)
     createdAt = db.DateTimeField(required=True)
     updatedAt = db.DateTimeField(required=True)
+    
     # meta = {
     #     'indexes': [
     #         {
@@ -75,8 +76,10 @@ class Chapters(db.Document):
     #         }
     #     ]
     # }
-    def get_chapter_folder_path(self):
-        return f"book_{self.book.id}/chapter_{self.id}"
+    def get_chapter_pdf_path(self):
+        return f"book_{self.book.id}/chapter_{self.id}/chapter_{self.id}.pdf"
+    def get_chapter_audio_path(self):
+        return f"book_{self.book.id}/chapter_{self.id}/chapter_{self.id}.mp3"
     def save(self, *args, **kwargs):
         if not self.createdAt:
             self.createdAt = datetime.datetime.now()

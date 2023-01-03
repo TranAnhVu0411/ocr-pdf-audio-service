@@ -37,26 +37,13 @@ class SentencesApi(Resource):
         except Exception as e:
             raise InternalServerError
 
-# route api/sentences/<page_id/sentence_id>
+# route api/sentences/<sentence_id>
 class SentenceApi(Resource):
-    # Lấy thông tin sentences trong pages
-    def get(self, id):
-        # id == page_id
-        try:
-            sentence_list = Sentences.objects.filter(page=id).order_by('index')
-            return make_response(jsonify({'sentence_list': sentence_list}), 200)
-        except InvalidQueryError:
-            raise SchemaValidationError
-        except DoesNotExist:
-            raise UpdatingPageError
-        except Exception:
-            raise InternalServerError
     # Cập nhật thông tin sentence
-    def put(self, id):
-        # id == sentence_id
+    def put(self, sentence_id):
         try:
             body = request.form.to_dict()
-            sentence = Sentences.objects.get(id=id)
+            sentence = Sentences.objects.get(id=sentence_id)
             if 'boundingBox' in body:
                 bodyBB = json.loads(body.pop('boundingBox'))
                 print(type(bodyBB))
@@ -80,10 +67,9 @@ class SentenceApi(Resource):
         except Exception:
             raise InternalServerError
     # Xoá sentence
-    def delete(self, id):
-        # id == sentence_id
+    def delete(self, sentence_id):
         try:
-            sentence = Sentences.objects.get(id=id)
+            sentence = Sentences.objects.get(id=sentence_id)
             sentence.delete()
             return 'delete successful', 200
         except InvalidQueryError:

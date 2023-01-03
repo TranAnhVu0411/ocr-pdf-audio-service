@@ -5,9 +5,11 @@ from celery import group, chain
 from tasks.ocr_tasks import *
 from tasks.pdf_tasks import *
 from tasks.audio_tasks import *
+from tasks.chapter_tasks import *
 from database.models import *
 import json
 
+# routes /api/preprocess/page
 # Xử lý OCR, Audio cho Page Image
 class PageImgProcessApi(Resource):
     def post(self):
@@ -36,10 +38,18 @@ class PageImgProcessApi(Resource):
             text_to_speech.si(
                 page_id = page_id, 
                 page_audio_object_key = page.get_page_audio_path()
-            )
+            ),
+            get_pdf_audio_obj_key.si(
+                chapter_id = str(page.chapter.id)
+            ),
+            group([
+                concat_audio.s(),
+                concat_pdf.s()  
+            ])
         ).apply_async()
         return {'work_flow_id': work_flow.id}, 200
 
+# routes /api/preprocess/book
 # Xử lý Split trang cho sách
 class BookPdfProcessApi(Resource):
     def post(self):
@@ -60,30 +70,36 @@ class BookPdfProcessApi(Resource):
 
         return {'work_flow_id': work_flow.id}, 200
 
-class AudioProcessApi(Resource):
-    # Xử lý khi chỉnh sửa text trong pages
+# routes /api/preprocess/audio
+# Xử lý audio khi chỉnh sửa text trong pages
+class PageAudioProcessApi(Resource):
     def put(self):
         body = request.form.to_dict()
         page_id = body.pop('pageId')
         page = Pages.objects.get(id=page_id)
-        work_flow = text_to_speech.apply_async(kwargs={
-                'page_id': page_id, 
-                'page_audio_object_key': page.get_page_audio_path()
-            }
-        )
+        work_flow = chain(
+            text_to_speech.si(
+                page_id = page_id, 
+                page_audio_object_key = page.get_page_audio_path()
+            ),
+            get_pdf_audio_obj_key.si(
+                chapter_id = str(page.chapter.id)
+            ),
+            concat_audio.s()
+        ).apply_async()
         return {'work_flow_id': work_flow.id}, 200
 
-    # Lấy audio concat của 1 chapters
-    def get(self):
-        chapter_id = request.args.get('chapter_id')
-        chapter = Chapters.objects.get(id=chapter_id)
-        pages = Pages.objects(chapter=chapter_id).order_by('index')
-        key_list = [page.get_page_audio_path() for page in pages]
-        raw_audio=concat_audio(key_list)
-        base64_audio = base64.b64encode(raw_audio.read()).decode('UTF-8')
-        # return send_file(raw_audio, mimetype='audio/mpeg')
-        return {'base64_audio': base64_audio}, 200
-
-
-        
-        
+# routes /api/preprocess/chapter
+# Tạo PDF/Audio khi chỉnh sửa vị trí pages/xoá pages
+class ChapterProcessApi(Resource):
+    def put(self, chapter_id):
+        work_flow = chain(
+            get_pdf_audio_obj_key.si(
+                chapter_id = chapter_id
+            ),
+            group([
+                concat_audio.s(),
+                concat_pdf.s()  
+            ])
+        ).apply_async()
+        return {'work_flow_id': work_flow.id}, 200

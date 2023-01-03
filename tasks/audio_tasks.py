@@ -1,40 +1,20 @@
-from pydub import AudioSegment
 from io import BytesIO
-from gtts import gTTS
 from app import celery_pdf_process
-from database.models import Sentences, Pages, Chapters
 from cloud.minio_utils import *
 import requests
 from database.models import *
-
-import sys
-sys.path.append('/opt/homebrew/opt/ffmpeg')
+from .utils.audio_utils import *
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 APP_HOST = 'http://localhost:3500'
 
-def convert_text_to_pydub_audio_segment(text, language="vi"):
-    gtts_object = gTTS(text = text, 
-                       lang = language,
-                       slow = False)
-    audio_bytes = BytesIO()
-    gtts_object.write_to_fp(audio_bytes)
-    audio_bytes.seek(0)
-    return AudioSegment.from_file(audio_bytes, format="mp3")
-
-def merge_audio_segments(audio_segment_list):
-    main_audio = audio_segment_list[0]
-    for segment in audio_segment_list[1:]:
-        main_audio += segment
-    return main_audio
-
 @celery_pdf_process.task()
 def text_to_speech(page_id, page_audio_object_key):
     try:
-        get_response = requests.get(f"{APP_HOST}/api/sentences/{page_id}")
-        sentence_list = get_response.json()['sentence_list']
+        get_response = requests.get(f"{APP_HOST}/api/pages/{page_id}")
+        sentence_list = get_response.json()['sentences']
         audio_segment_list = []
         for sentence in sentence_list:
             text = sentence['text']
@@ -58,15 +38,3 @@ def text_to_speech(page_id, page_audio_object_key):
     except Exception as e:
         print('audio task', e)
         requests.put(f"{APP_HOST}/api/pages/{page_id}", data = {"audioStatus": Status.ERROR})
-
-
-def concat_audio(audio_object_key_list):
-    audio_segment_list = []
-    for object_key in audio_object_key_list:
-        response = minio_client.get_object(config["BASE_BUCKET"], object_key)
-        audio_segment_list.append(AudioSegment.from_file(BytesIO(response.data), format="mp3"))
-    audio = merge_audio_segments(audio_segment_list)
-    raw_audio = BytesIO()
-    audio.export(raw_audio, format="mp3")
-    return raw_audio
-

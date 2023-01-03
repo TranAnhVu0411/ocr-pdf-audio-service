@@ -1,14 +1,14 @@
 from flask import Response, request
 from flask_restful import Resource
 from cloud.minio_utils import *
-from database.models import Pages, Books
+from database.models import Pages, Books, Chapters
 
 # Presigned Url API
 # Request = {
 #     upload-type: PUT/GET/DELETE
-#     type: book/page,
+#     type: book/page/chapter,
 #     id: ...,
-#     data-type: mp3, pdf, image
+#     data-type: audio, pdf, image
 # }
 class PresignedUrlApi(Resource):
     def post(self):
@@ -41,6 +41,16 @@ class PresignedUrlApi(Resource):
                     return {'url': url}, 200
                 if body['data-type']=='audio':
                     path = page.get_page_audio_path()
+                    url = get_presigned_url(path, type='GET', response_type='audio/mpeg')
+                    return {'url': url}, 200
+            elif body['type']=='chapter':
+                chapter = Chapters.objects.get(id=body['id'])
+                if body['data-type']=='pdf':
+                    path = chapter.get_chapter_pdf_path()
+                    url = get_presigned_url(path, type='GET', response_type='application/pdf')
+                    return {'url': url}, 200
+                if body['data-type']=='audio':
+                    path = chapter.get_chapter_audio_path()
                     url = get_presigned_url(path, type='GET', response_type='audio/mpeg')
                     return {'url': url}, 200
             elif body['type']=='book':
@@ -77,7 +87,7 @@ class PresignedUrlApi(Resource):
 
 # Get Object Key API
 # Request = {
-#     type: book/page,
+#     type: book/chapter/page,
 #     id: ...,
 # }
 class ObjectKeyApi(Resource):
@@ -87,6 +97,12 @@ class ObjectKeyApi(Resource):
             book = Books.objects.get(id=body['id'])
             path = book.get_book_pdf_path()
             return {'path': path}, 200
+        if body['type']=='chapter':
+            chapter = Chapters.objects.get(id=body['id'])
+            return {
+                'pdf-path': chapter.get_chapter_pdf_path(),
+                'audio-path': chapter.get_chapter_audio_path(),
+            }
         elif body['type']=='page':
             page = Pages.objects.get(id=body['id'])
             return {
