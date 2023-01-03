@@ -5,6 +5,7 @@ from cloud.minio_utils import *
 from app import celery_pdf_process
 import requests
 from database.models import *
+import fitz
 
 APP_HOST = 'http://localhost:3500'
 
@@ -20,7 +21,15 @@ def create_ocr_page(page_id, ocr_status, page_img_object_key, page_pdf_object_ke
             response = minio_client.get_object(config["BASE_BUCKET"], page_img_object_key)
             img = Image.open(response)
             pdf = pytesseract.image_to_pdf_or_hocr(img, extension='pdf',lang="vie")
-            raw_pdf = io.BytesIO(pdf)
+            # Convert pdf to fitz document type
+            doc = fitz.open("pdf", pdf)
+
+            resize_doc = fitz.open()  # new empty PDF
+            page = resize_doc.new_page()  # new page in A4 format
+            page.show_pdf_page(page.rect, doc, 0)
+
+            pdf_data = resize_doc.tobytes()
+            raw_pdf = io.BytesIO(pdf_data)
             raw_pdf_size = raw_pdf.getbuffer().nbytes
             minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
                                     object_name = page_pdf_object_key, 

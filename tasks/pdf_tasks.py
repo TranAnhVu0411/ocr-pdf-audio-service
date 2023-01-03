@@ -95,9 +95,16 @@ def split_book_page(doc_message, from_page, to_page, chapter_id):
                                     content_type = 'image/png')
 
             # Upload PDF lên Cloud
+            # Load PDF page
             page_doc = fitz.open() # an empty pdf file is opened
             page_doc.insert_pdf(doc, from_page=i, to_page=i)
-            pdf_data = page_doc.tobytes()
+
+            # Resize PDF to A4
+            resize_doc = fitz.open()  # new empty PDF
+            page = resize_doc.new_page()  # new page in A4 format
+            page.show_pdf_page(page.rect, page_doc, 0)
+
+            pdf_data = resize_doc.tobytes()
             raw_pdf = io.BytesIO(pdf_data)
             raw_pdf_size = raw_pdf.getbuffer().nbytes
             minio_client.put_object(bucket_name = config['BASE_BUCKET'], 
