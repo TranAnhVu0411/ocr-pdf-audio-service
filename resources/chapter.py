@@ -104,6 +104,7 @@ class ChapterApi(Resource):
 class ChapterGetAllApi(Resource):
     # Lấy toàn bộ thông tin chapter (chapter, pages, sentences)
     # Cấu trúc 
+    # Lưu ý: Trong bounding box, các thông số lấy theo % của page (hiện tại đang set mặc định A4: width=595, height=842)
     # {
     #     chapter: <chapter_info>,
     #     sentences: [
@@ -138,22 +139,23 @@ class ChapterGetAllApi(Resource):
                     for i in pages:
                         sentences = Sentences.objects(page=i.id).order_by('index')
                         for j in sentences:
+                            total_time += j['audioLength']
                             sentence_item = {}
-                            sentence_item['pageIndex'] = i['index']
+                            sentence_item['pageIndex'] = i['index']-1
                             sentence_item['sentenceId'] = str(j['id'])
-                            sentence_item['startTime'] = total_time
+                            sentence_item['endTime'] = total_time
+                            total_time += time_between_sentence
                             bounding_box_list = []
                             for k in j['boundingBox']:
                                 bounding_box_list.append({
-                                    'pageIndex': i['index'],
-                                    'left': k['x'],
-                                    'top': k['y'],
-                                    'width': k['width'],
-                                    'height': k['height']
+                                    'pageIndex': i['index']-1,
+                                    'left': (k['x']/595)*100,
+                                    'top': (k['y']/842)*100,
+                                    'width': (k['width']/595)*100,
+                                    'height': (k['height']/842)*100
                                 })
                             sentence_item['highlightAreas'] = bounding_box_list
                             sentence_list.append(sentence_item)
-                            total_time += j['audioLength']+time_between_sentence
                     return make_response(jsonify({'chapter': chapter, 'sentences': sentence_list}), 200)
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()

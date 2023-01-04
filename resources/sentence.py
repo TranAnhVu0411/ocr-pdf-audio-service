@@ -25,7 +25,12 @@ class SentencesApi(Resource):
             sentence.text = body['text']
             sentence.boundingBox = []
             for bb in json.loads(body['boundingBox']):
-                bb_instance = BoundingBoxes(**bb)
+                bb_instance = BoundingBoxes(
+                    x=bb['x'],
+                    y=bb['y'],
+                    width=bb['width'],
+                    height=bb['height']
+                )
                 sentence.boundingBox.append(bb_instance)
             sentence.save()
             id = sentence.id
