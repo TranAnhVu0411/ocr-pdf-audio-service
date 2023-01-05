@@ -5,7 +5,7 @@ from minio import Minio
 from minio.datatypes import PostPolicy
 from minio.error import S3Error
 
-config = dotenv_values("cloud/.env.cloud")
+config = dotenv_values("cloud/.env")
 
 print(config)
 

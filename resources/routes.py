@@ -28,5 +28,3 @@ def initialize_routes(api):
     api.add_resource(BookPdfProcessApi, '/api/preprocess/book')
     api.add_resource(PageAudioProcessApi, '/api/preprocess/audio')
     api.add_resource(ChapterProcessApi, '/api/preprocess/chapter/<chapter_id>')
-
-    

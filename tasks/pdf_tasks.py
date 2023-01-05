@@ -83,8 +83,17 @@ def split_book_page(doc_message, from_page, to_page, chapter_id):
             object_key_response = requests.post(f"{APP_HOST}/api/object_keys", data={'type': 'page', 'id': page_id})
             object_key = object_key_response.json()
 
+            # Load PDF page
+            page_doc = fitz.open() # an empty pdf file is opened
+            page_doc.insert_pdf(doc, from_page=i, to_page=i)
+
+            # Resize PDF to A4
+            resize_doc = fitz.open()  # new empty PDF
+            page = resize_doc.new_page()  # new page in A4 format
+            page.show_pdf_page(page.rect, page_doc, 0)
+
             # Upload ảnh lên Cloud
-            pix = doc[i].get_pixmap()
+            pix = resize_doc[0].get_pixmap()
             img_data = pix.pil_tobytes(format="png", optimize=True)
             raw_img = io.BytesIO(img_data)
             raw_img_size = raw_img.getbuffer().nbytes
@@ -95,15 +104,6 @@ def split_book_page(doc_message, from_page, to_page, chapter_id):
                                     content_type = 'image/png')
 
             # Upload PDF lên Cloud
-            # Load PDF page
-            page_doc = fitz.open() # an empty pdf file is opened
-            page_doc.insert_pdf(doc, from_page=i, to_page=i)
-
-            # Resize PDF to A4
-            resize_doc = fitz.open()  # new empty PDF
-            page = resize_doc.new_page()  # new page in A4 format
-            page.show_pdf_page(page.rect, page_doc, 0)
-
             pdf_data = resize_doc.tobytes()
             raw_pdf = io.BytesIO(pdf_data)
             raw_pdf_size = raw_pdf.getbuffer().nbytes
