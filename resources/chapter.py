@@ -85,11 +85,27 @@ class ChapterApi(Resource):
         with mongo.start_session() as session:
             with session.start_transaction():
                 try:
+                    query = request.args.to_dict()
+                    print(query)
                     chapter = Chapters.objects.get(id=chapter_id)
-                    pages = Pages.objects(chapter=chapter_id).order_by('index')
-                    pdf_status = check_status(pages, 'pdfStatus')
-                    audio_status = check_status(pages, 'audioStatus')
-                    return make_response(jsonify({'chapter': chapter, 'pages': pages, 'pdfStatus': pdf_status, 'audioStatus': audio_status}), 200)
+                    if ('state' in query):
+                        if query['state'] =='previous':
+                            previous_chapter = Chapters.objects.get(book=chapter.book, index=chapter.index-1)
+                            pages = Pages.objects(chapter=previous_chapter.id).order_by('index')
+                            pdf_status = check_status(pages, 'pdfStatus')
+                            audio_status = check_status(pages, 'audioStatus')
+                            return make_response(jsonify({'chapter': previous_chapter, 'pdfStatus': pdf_status, 'audioStatus': audio_status}), 200)
+                        elif query['state'] =='next':
+                            next_chapter = Chapters.objects.get(book=chapter.book, index=chapter.index+1)
+                            pages = Pages.objects(chapter=next_chapter.id).order_by('index')
+                            pdf_status = check_status(pages, 'pdfStatus')
+                            audio_status = check_status(pages, 'audioStatus')
+                            return make_response(jsonify({'chapter': next_chapter, 'pdfStatus': pdf_status, 'audioStatus': audio_status}), 200)
+                    else:
+                        pages = Pages.objects(chapter=chapter_id).order_by('index')
+                        pdf_status = check_status(pages, 'pdfStatus')
+                        audio_status = check_status(pages, 'audioStatus')
+                        return make_response(jsonify({'chapter': chapter, 'pages': pages, 'pdfStatus': pdf_status, 'audioStatus': audio_status}), 200)
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()
                     raise SchemaValidationError
@@ -131,9 +147,9 @@ class ChapterGetAllApi(Resource):
             with session.start_transaction():
                 try:
                     chapter = Chapters.objects.get(id=chapter_id)
+                    num_chapter = len(Chapters.objects(book=chapter.book))
                     pages = Pages.objects(chapter=chapter_id).order_by('index')
                     sentence_list = []
-                    time_stamp_list = []
                     time_between_sentence = 0.048 # Thời gian giữa 2 câu
                     total_time = 0
                     for i in pages:
@@ -144,6 +160,7 @@ class ChapterGetAllApi(Resource):
                             sentence_item['pageIndex'] = i['index']-1
                             sentence_item['sentenceId'] = str(j['id'])
                             sentence_item['endTime'] = total_time
+                            sentence_item['duration'] = j['audioLength']
                             total_time += time_between_sentence
                             bounding_box_list = []
                             for k in j['boundingBox']:
@@ -156,7 +173,7 @@ class ChapterGetAllApi(Resource):
                                 })
                             sentence_item['highlightAreas'] = bounding_box_list
                             sentence_list.append(sentence_item)
-                    return make_response(jsonify({'chapter': chapter, 'sentences': sentence_list}), 200)
+                    return make_response(jsonify({'chapter': chapter, 'numChapter': num_chapter,'sentences': sentence_list}), 200)
                 except (FieldDoesNotExist, ValidationError):
                     session.abort_transaction()
                     raise SchemaValidationError
