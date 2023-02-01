@@ -3,7 +3,7 @@ from .url import PresignedUrlApi, ObjectKeyApi
 from .chapter import ChaptersApi, ChapterApi, ChapterGetAllApi
 from .page import PagesApi, PageApi
 from .sentence import SentencesApi, SentenceApi
-from .tasks import PageImgProcessApi, BookPdfProcessApi, PageAudioProcessApi, ChapterProcessApi
+from .tasks import PageImgProcessApi, BookPdfProcessApi, PageAddProcessApi, PageAudioProcessApi, ChapterProcessApi
 
 # from .reset_password import ForgotPassword, ResetPassword
 
@@ -26,5 +26,6 @@ def initialize_routes(api):
 
     api.add_resource(PageImgProcessApi, '/api/preprocess/page')
     api.add_resource(BookPdfProcessApi, '/api/preprocess/book')
+    api.add_resource(PageAddProcessApi, '/api/preprocess/add_page')
     api.add_resource(PageAudioProcessApi, '/api/preprocess/audio')
     api.add_resource(ChapterProcessApi, '/api/preprocess/chapter/<chapter_id>')

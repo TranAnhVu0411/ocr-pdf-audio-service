@@ -56,8 +56,7 @@ class BookPdfProcessApi(Resource):
         body = request.form.to_dict()
         book = Books.objects.get(id=body['bookId'])
         chapter_list = json.loads(body['chapterList'])
-        print(chapter_list)
-
+        
         work_flow = chain(
             get_pdf.si(pdf_object_key = book.get_book_pdf_path()),
             group(
@@ -66,6 +65,20 @@ class BookPdfProcessApi(Resource):
                     to_page = int(chapter['to']),
                     chapter_id = chapter['chapterId']
                 ) for chapter in chapter_list)
+        ).apply_async()
+
+        return {'work_flow_id': work_flow.id}, 200
+
+# routes /api/preprocess/add_page
+# Thêm trang mới cho chương
+class PageAddProcessApi(Resource):
+    def post(self):
+        body = request.form.to_dict()
+        book_pdf_path = Pages.objects.get(id=body['pageId']).chapter.book.get_book_pdf_path()
+
+        work_flow = chain(
+            get_pdf.si(pdf_object_key = book_pdf_path),
+            add_new_page.s(idx=int(body['idx']), page_id=body['pageId'])
         ).apply_async()
 
         return {'work_flow_id': work_flow.id}, 200
