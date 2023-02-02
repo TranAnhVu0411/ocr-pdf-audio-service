@@ -2,7 +2,6 @@ import os
 os.environ['ENV_FILE_LOCATION'] = ".env"
 
 from flask import Flask
-from flask_jwt_extended import JWTManager
 from flask_restful import Api
 from flask_cors import CORS
 from tasks.worker import make_celery
