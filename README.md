@@ -15,10 +15,24 @@ install minio in your computer
 
 install rabbitmq in your computer
 
+Add .env file in code, specifically:
++ in main project, add file .env with content:
+MONGODB_SETTINGS={
+    'db':'audiobook_db',
+    'host':'localhost',
+    'port': 27017,
+    'alias':'default'
+}
++ in cloud folder, add file .env with content:
+HOST= localhost:9000
+ACCESS_KEY=********
+SECRET_KEY=********
+BASE_BUCKET=audiobook
+
 In terminal:
 + go to project and run pip install -r requirements.txt
 
-+ run minio: minio server start (This one is run in Mac, hasn't checked in Window yet)
++ run minio: minio server start (This one is run in Mac, hasn't checked in Window yet) => open localhost:9000 and create bucket named "audiobook"
 
 + run rabbitMQ: brew services restart rabbitmq (This one is run in Mac, hasn't checked in Window yet)
 
